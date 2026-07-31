@@ -41,9 +41,10 @@ output "verification_next_steps" {
        Required while the account is in the SES sandbox. That is a real
        Microsoft 365 mailbox, so someone needs to open it and click through.
 
-    3. Request SES production access in the console. Until granted, SES only
-       delivers to verified addresses. Submissions would silently fail for any
-       recipient you have not verified.
+    3. Production access is NOT required. The sandbox allows 200 emails/day to
+       verified recipients; this form sends to one fixed address a few times a
+       day. Reply-To carries the visitor address and needs no verification.
+       Request production access only to auto-reply to submitters.
 
     4. Set the repository variables:
          PUBLIC_CONTACT_ENDPOINT   = <contact_endpoint output>

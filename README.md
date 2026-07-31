@@ -84,10 +84,19 @@ Add the DKIM, SPF and DMARC records from `terraform output`. They are all on the
 
 ### 3. SES
 
-- AWS emails **the configured recipient** a verification link. It must be
-  clicked, or sending fails while the account is in the sandbox.
-- Request **production access** in the SES console. Until granted, SES delivers
-  only to verified addresses.
+AWS emails the configured recipient a verification link. **It must be clicked**
+or nothing sends.
+
+**Production access is not required.** The sandbox allows 200 emails/day to
+verified recipients, and this form sends to exactly one fixed address at roughly
+3/day. Reply-To carries the visitor's address and does not need verifying — SES
+only validates the Destination.
+
+Staying in the sandbox is also a useful safety ceiling: even if every other
+control failed, the endpoint could only ever deliver to Gary, never to strangers.
+
+Request production access only if you later want to auto-reply to whoever
+submitted the form, since that means sending to an unverified address.
 
 ### 4. Turnstile
 
