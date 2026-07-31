@@ -37,7 +37,7 @@ to `url-inventory.json`.
 ## Contact form
 
 ```
-browser ──POST json──> Lambda Function URL ──> SES ──> gary@intechsolutions.net
+browser ──POST json──> Lambda Function URL ──> SES ──> <the address in terraform.tfvars>
 ```
 
 Everything is validated server-side; nothing trusts the browser. In order:
@@ -84,7 +84,7 @@ Add the DKIM, SPF and DMARC records from `terraform output`. They are all on the
 
 ### 3. SES
 
-- AWS emails **gary@intechsolutions.net** a verification link. It must be
+- AWS emails **the configured recipient** a verification link. It must be
   clicked, or sending fails while the account is in the sandbox.
 - Request **production access** in the SES console. Until granted, SES delivers
   only to verified addresses.

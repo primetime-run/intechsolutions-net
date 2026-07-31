@@ -144,9 +144,13 @@ const year = new Date().getFullYear()
         background: var(--surface);
         position: sticky; top: 0; z-index: 10;
       }
+      /* nowrap: the mobile panel is absolutely positioned rather than wrapped
+         onto a second flex line. As a wrapped line it made .inner multi-line,
+         and align-content:stretch then shifted the brand row every time the
+         menu opened. */
       nav.site .inner {
         display: flex; align-items: center; gap: 1rem;
-        min-height: 4rem; flex-wrap: wrap;
+        height: 4rem; flex-wrap: nowrap;
       }
       nav.site .brand {
         display: flex; align-items: center; gap: .6rem;
@@ -196,22 +200,28 @@ const year = new Date().getFullYear()
 
       @media (max-width: 61rem) {
         nav.site .toggle { display: flex; }
+        /* Absolute, so the bar keeps its exact 4rem height whether the panel is
+           open or shut — nothing above it can move. */
         nav.site .links {
           display: none;
+          position: absolute; top: 100%; left: 0; right: 0;
           flex-direction: column; align-items: stretch; gap: 0;
-          flex-basis: 100%; order: 3;
-          border-top: 1px solid var(--rule);
-          margin-inline: calc(var(--gutter) * -1);
-          padding: .5rem var(--gutter) 1rem;
+          background: var(--surface);
+          border-bottom: 1px solid var(--rule);
+          box-shadow: 0 10px 24px rgb(0 0 0 / 10%);
+          padding: .25rem var(--gutter) 1rem;
+          max-height: calc(100svh - 4rem);
+          overflow-y: auto;
         }
         nav.site .links[data-open] { display: flex; }
         nav.site .links a {
-          padding: .7rem 0; font-size: 1rem;
+          padding: .8rem 0; font-size: 1rem;
           border-bottom: 1px solid var(--rule);
         }
+        nav.site .links a:last-of-type { border-bottom: 0; }
         nav.site .links a.cta {
           border-bottom: 0; margin-top: .85rem; text-align: center;
-          padding: .7rem 1rem;
+          padding: .75rem 1rem;
         }
       }
 

@@ -26,11 +26,14 @@ variable "mail_subdomain" {
 
 variable "contact_to" {
   description = <<-EOT
-    Where submissions are delivered. This is a real Microsoft 365 mailbox, so
-    it can receive the SES verification link that the sandbox requires.
+    Where submissions are delivered. Must be a real mailbox — SES emails it a
+    verification link that has to be clicked while the account is in sandbox.
+
+    Deliberately has no default: this repository is public, and a plaintext
+    business address in a committed file gets harvested by spam scrapers. Set
+    it in infra/terraform.tfvars (gitignored) or via TF_VAR_contact_to.
   EOT
   type        = string
-  default     = "gary@intechsolutions.net"
 }
 
 variable "allowed_origins" {
