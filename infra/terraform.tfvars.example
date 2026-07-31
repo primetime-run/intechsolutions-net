@@ -1,0 +1,8 @@
+# Copy to terraform.tfvars and edit. That file is gitignored.
+
+# Where contact form submissions are delivered.
+contact_to = "you@example.com"
+
+# Cloudflare Turnstile secret key. Prefer the environment variable
+# TF_VAR_turnstile_secret so it never touches disk at all.
+# turnstile_secret = "0x4AAA..."

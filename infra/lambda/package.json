@@ -1,0 +1,6 @@
+{
+  "name": "intech-contact-form",
+  "type": "module",
+  "private": true,
+  "description": "Contact form handler. @aws-sdk/client-sesv2 is provided by the nodejs22.x runtime, so there are no bundled dependencies."
+}

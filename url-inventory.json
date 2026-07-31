@@ -1,0 +1,9 @@
+[
+  { "from": "/business-continuity/", "title": "Business Continuity" },
+  { "from": "/cloud-services/", "title": "Cloud Services" },
+  { "from": "/security-services/", "title": "Security Services" },
+  { "from": "/voip/", "title": "VOIP" },
+  { "from": "/video-surveillance/", "title": "Video Surveillance" },
+  { "from": "/structured-cabling/", "title": "Structured Cabling" },
+  { "from": "/contact/", "title": "Contact" }
+]

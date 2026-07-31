@@ -1,0 +1,178 @@
+---
+import { getCollection } from 'astro:content'
+import Base from '../layouts/Base.astro'
+
+// Both injected at build time by the workflow. Neither is a secret: the
+// Function URL is a public endpoint that validates everything server-side, and
+// a Turnstile site key is designed to be visible in markup.
+const ENDPOINT = import.meta.env.PUBLIC_CONTACT_ENDPOINT ?? ''
+const TURNSTILE_KEY = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? ''
+
+const services = (await getCollection('services', ({ data }) => !data.draft)).sort(
+  (a, b) => a.data.order - b.data.order
+)
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'ContactPage',
+  name: 'Contact',
+  url: new URL('/contact/', Astro.site).href,
+  about: { '@type': 'ProfessionalService', name: 'Innovative Technology Solutions' },
+}
+---
+
+<Base
+  title="Contact — Innovative Technology Solutions"
+  heading="Contact"
+  description="Tell us what you need. Managed IT, cloud, security, VOIP, surveillance and cabling."
+  jsonLd={jsonLd}
+>
+  <article>
+    <p>Let us know how we can help.</p>
+
+    <form id="contact-form" novalidate>
+      <div class="row">
+        <label>
+          First name <span aria-hidden="true">*</span>
+          <input type="text" name="firstName" required autocomplete="given-name" maxlength="80" />
+        </label>
+        <label>
+          Last name <span aria-hidden="true">*</span>
+          <input type="text" name="lastName" required autocomplete="family-name" maxlength="80" />
+        </label>
+      </div>
+
+      <label>
+        Email <span aria-hidden="true">*</span>
+        <input type="email" name="email" required autocomplete="email" maxlength="254" />
+      </label>
+
+      {/* Pre-selected when arriving from a service page via ?service=<slug>. */}
+      <label>
+        What can we help with?
+        <select name="service" id="service">
+          <option value="">General enquiry</option>
+          {services.map((s) => <option value={s.data.slug}>{s.data.title}</option>)}
+        </select>
+      </label>
+
+      <label>
+        Message
+        <textarea name="message" rows="6" maxlength="5000"></textarea>
+      </label>
+
+      {/* Honeypot: hidden from people, irresistible to naive bots. Any value
+          submitted here means the request is discarded server-side. */}
+      <div class="hp" aria-hidden="true">
+        <label>Company website<input type="text" name="website" tabindex="-1" autocomplete="off" /></label>
+      </div>
+
+      {TURNSTILE_KEY && (
+        <div class="cf-turnstile" data-sitekey={TURNSTILE_KEY} data-theme="auto"></div>
+      )}
+
+      <button type="submit" class="btn">Send</button>
+
+      <p id="form-status" role="status" aria-live="polite"></p>
+    </form>
+  </article>
+
+  {TURNSTILE_KEY && (
+    <script is:inline async src="https://challenges.cloudflare.com/turnstile/v0/api.js"></script>
+  )}
+
+  <script is:inline define:vars={{ ENDPOINT }}>
+    const form = document.getElementById('contact-form')
+    const status = document.getElementById('form-status')
+    const button = form.querySelector('button[type="submit"]')
+    const select = document.getElementById('service')
+
+    // Pre-select from ?service=<slug>, set by the CTA on each service page.
+    // Assigning only matches a real <option>, so a bogus value falls back to
+    // "General enquiry" rather than injecting anything.
+    const wanted = new URLSearchParams(location.search).get('service')
+    if (wanted) select.value = wanted
+
+    // Stamped when the page loads. The server rejects anything submitted in
+    // under 3 seconds — a human cannot type a name, email and message that
+    // fast, but a script posts instantly. Set in JS rather than at build time
+    // because the page is static and would otherwise carry a stale timestamp.
+    const renderedAt = Date.now()
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault()
+      status.className = ''
+      status.textContent = ''
+
+      if (!form.checkValidity()) {
+        form.reportValidity()
+        return
+      }
+      if (!ENDPOINT) {
+        status.className = 'err'
+        status.textContent = 'This form is not configured yet. Please email us directly.'
+        return
+      }
+
+      const data = { ...Object.fromEntries(new FormData(form).entries()), renderedAt }
+      button.disabled = true
+      button.textContent = 'Sending…'
+
+      try {
+        const res = await fetch(ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        })
+        const body = await res.json().catch(() => ({}))
+
+        if (res.ok) {
+          form.reset()
+          if (wanted) select.value = wanted
+          if (window.turnstile) window.turnstile.reset()
+          status.className = 'ok'
+          status.textContent = 'Thanks — your message is on its way. We will be in touch.'
+        } else {
+          status.className = 'err'
+          status.textContent =
+            body.error || 'Something went wrong sending that. Please try again in a moment.'
+        }
+      } catch {
+        status.className = 'err'
+        status.textContent = 'Could not reach the server. Please check your connection and retry.'
+      } finally {
+        button.disabled = false
+        button.textContent = 'Send'
+      }
+    })
+  </script>
+
+  <style>
+    form { max-width: 34rem; }
+    .row { display: grid; gap: 1rem; grid-template-columns: 1fr 1fr; }
+    @media (max-width: 30rem) { .row { grid-template-columns: 1fr; } }
+    label { display: block; margin-bottom: 1rem; font-size: 0.9375rem; font-weight: 600; }
+    label span { color: var(--red); }
+    input, textarea, select {
+      display: block; width: 100%; margin-top: 0.35rem;
+      padding: 0.6rem 0.7rem; font: inherit; font-weight: 400;
+      color: var(--fg); background: var(--surface);
+      border: 1px solid var(--rule); border-radius: 7px;
+    }
+    input:focus-visible, textarea:focus-visible, select:focus-visible {
+      outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent);
+    }
+    textarea { resize: vertical; }
+    /* Off-screen rather than display:none — some bots skip hidden inputs. */
+    .hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+    .cf-turnstile { margin: 0 0 1rem; }
+    button[disabled] { opacity: 0.6; cursor: progress; }
+    #form-status { margin-top: 1rem; font-size: 0.9375rem; min-height: 1.4em; }
+    #form-status.ok { color: #1a7f4b; }
+    #form-status.err { color: #c0392b; }
+    @media (prefers-color-scheme: dark) {
+      #form-status.ok { color: #56d364; }
+      #form-status.err { color: #ff7b72; }
+    }
+  </style>
+</Base>

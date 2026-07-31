@@ -1,0 +1,71 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never cancel a running deploy — let it finish rather than leave Pages in a
+# half-published state.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - uses: actions/configure-pages@v6
+
+      # `npm install`, not `npm ci`.
+      #
+      # npm ci rejects this lockfile on Linux with a peer-dependency conflict
+      # (astro wants zod@4, @astrojs/rss wants zod@3; typescript reported
+      # missing). The same lockfile installs cleanly on macOS under both npm 10
+      # and npm 12, and regenerating it on either produces a byte-identical
+      # file — so npm arbitrates that conflict differently per platform and
+      # there is no lockfile that satisfies both.
+      #
+      # The trade is that builds are not byte-reproducible from the lockfile.
+      # Acceptable here: three direct dependencies, and `npm run verify-urls`
+      # below still fails the deploy if the output regresses.
+      - name: Install dependencies
+        run: |
+          node --version
+          npm --version
+          npm install --no-audit --no-fund
+      - run: npm run build
+        env:
+          # Neither is secret: the Function URL validates everything server-side
+          # and a Turnstile site key is designed to be visible in markup. Set
+          # both as repository *variables*, not secrets.
+          PUBLIC_CONTACT_ENDPOINT: ${{ vars.PUBLIC_CONTACT_ENDPOINT }}
+          PUBLIC_TURNSTILE_SITE_KEY: ${{ vars.PUBLIC_TURNSTILE_SITE_KEY }}
+
+      # Fails the deploy if any original WordPress URL stopped resolving.
+      - run: npm run verify-urls
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

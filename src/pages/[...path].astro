@@ -1,0 +1,67 @@
+---
+import { getCollection, render } from 'astro:content'
+import Base from '../layouts/Base.astro'
+import Icon from '../components/Icon.astro'
+
+// Routes come from each entry's `originalUrl`, so every path WordPress served
+// is reproduced byte-for-byte. Nothing here derives paths from slugs, which is
+// what keeps inbound links and search rankings intact.
+export async function getStaticPaths() {
+  const services = await getCollection('services', ({ data }) => !data.draft)
+  return services.map((entry) => ({
+    params: { path: entry.data.originalUrl.replace(/^\/|\/$/g, '') },
+    props: { entry },
+  }))
+}
+
+const { entry } = Astro.props
+const { Content } = await render(entry)
+
+const others = (await getCollection('services', ({ data }) => !data.draft))
+  .filter((s) => s.id !== entry.id)
+  .sort((a, b) => a.data.order - b.data.order)
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Service',
+  name: entry.data.title,
+  description: entry.data.summary,
+  url: new URL(entry.data.originalUrl, Astro.site).href,
+  provider: {
+    '@type': 'ProfessionalService',
+    name: 'Innovative Technology Solutions',
+    url: Astro.site?.href,
+  },
+}
+---
+
+<Base
+  title={`${entry.data.title} — Innovative Technology Solutions`}
+  heading={entry.data.title}
+  subheading="Innovative Technology Solutions"
+  description={entry.data.summary}
+  jsonLd={jsonLd}
+>
+  <article>
+    <Content />
+    {/* Carries the service through so the contact form arrives pre-selected. */}
+    <a class="btn" href={`/contact/?service=${entry.data.slug}`}>
+      Talk to us about {entry.data.title}
+    </a>
+  </article>
+
+  <section class="block">
+    <h2>Other services</h2>
+    <ul class="cards">
+      {others.map((s) => (
+        <li>
+          <a class="card-link" href={s.data.originalUrl}>
+            <span class="ico"><Icon name={s.data.icon} /></span>
+            <h3>{s.data.title}</h3>
+            <p>{s.data.summary}</p>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </section>
+</Base>

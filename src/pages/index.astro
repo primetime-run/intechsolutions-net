@@ -1,0 +1,89 @@
+---
+import { getImage } from 'astro:assets'
+import { getCollection } from 'astro:content'
+import Base from '../layouts/Base.astro'
+import Icon from '../components/Icon.astro'
+import heroSrc from '../assets/hero.jpg'
+
+// Resized and re-encoded at build time — the original is a 2000px, 197 KB JPEG
+// from the old theme. It sits behind a heavy navy wash, so quality can be low.
+const heroImg = await getImage({ src: heroSrc, width: 1600, format: 'webp', quality: 62 })
+
+const services = (await getCollection('services', ({ data }) => !data.draft)).sort(
+  (a, b) => a.data.order - b.data.order
+)
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'ProfessionalService',
+  name: 'Innovative Technology Solutions',
+  description:
+    'Managed IT, cloud, security, VOIP, video surveillance and structured cabling for businesses.',
+  url: Astro.site?.href,
+  slogan: 'Simple, Reliable and Awesome.',
+  areaServed: 'United States',
+  hasOfferCatalog: {
+    '@type': 'OfferCatalog',
+    name: 'Services',
+    itemListElement: services.map((s) => ({
+      '@type': 'Offer',
+      itemOffered: {
+        '@type': 'Service',
+        name: s.data.title,
+        description: s.data.summary,
+        url: new URL(s.data.originalUrl, Astro.site).href,
+      },
+    })),
+  },
+}
+---
+
+<Base
+  title="Innovative Technology Solutions — Managed IT, Cloud, Security & VOIP"
+  heading="Innovative Technology Solutions"
+  subheading="Simple, Reliable and Awesome."
+  description="Managed IT, cloud, security, VOIP, video surveillance and structured cabling for businesses. Simple, reliable and awesome."
+  jsonLd={jsonLd}
+  hero
+>
+  <section class="hero" slot="hero" style={`background-image:url(${heroImg.src})`}>
+    <div class="wrap">
+      <h1>Simple, Reliable and Awesome.</h1>
+      <p class="tag">
+        Managed IT, cloud, security and voice for businesses that would rather
+        get on with the work than worry about the wiring.
+      </p>
+      <a class="btn" href="/contact/">We will hook you up</a>
+      <a class="btn ghost" href="#services">See services</a>
+    </div>
+  </section>
+
+  <section class="block" id="services">
+    <h2>Services</h2>
+    <p class="lead">
+      Everything from the cable in the wall to the cloud it connects to &mdash;
+      managed by one team, so nobody gets to point at somebody else.
+    </p>
+
+    <ul class="cards">
+      {services.map((s) => (
+        <li>
+          <a class="card-link" href={s.data.originalUrl}>
+            <span class="ico"><Icon name={s.data.icon} /></span>
+            <h3>{s.data.title}</h3>
+            <p>{s.data.summary}</p>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </section>
+
+  <section class="block">
+    <h2>Let us know what we can do for you</h2>
+    <p class="lead">
+      Tell us what you are running and what is getting in the way. We will come
+      back with something practical.
+    </p>
+    <a class="btn" href="/contact/">Get in touch</a>
+  </section>
+</Base>
