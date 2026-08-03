@@ -8,10 +8,14 @@
     "build": "astro build && node scripts/generate-sw.mjs",
     "preview": "astro preview",
     "verify-urls": "node scripts/verify-urls.mjs",
-    "icons": "node scripts/generate-icons.mjs"
+    "icons": "node scripts/generate-icons.mjs",
+    "dev:contact": "node scripts/dev-contact.mjs"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.2.1",
     "astro": "^5.13.0"
+  },
+  "devDependencies": {
+    "@aws-sdk/client-sesv2": "^3.1102.0"
   }
 }
