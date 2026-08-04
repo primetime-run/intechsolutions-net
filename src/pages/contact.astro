@@ -75,6 +75,27 @@ const jsonLd = {
 
       <p id="form-status" role="status" aria-live="polite"></p>
     </form>
+
+    {/* Shown in place of the form after a successful send.
+
+        `hidden` in the markup rather than via CSS so it is genuinely absent
+        without JavaScript — and with JavaScript off the form never submits by
+        fetch anyway, so this panel must never be the only thing on the page.
+
+        tabindex="-1" is here to be focused from script, not to be tabbed to.
+        Swapping the form out silently would leave a screen reader user's focus
+        on a button that no longer exists, and a keyboard user tabbing into
+        whatever follows with no idea the message sent. */}
+    <div id="form-success" class="success" hidden tabindex="-1">
+      <h2>Thanks — your message is on its way.</h2>
+      <p>
+        We will be in touch shortly. If it is urgent, calling is faster than
+        waiting on email.
+      </p>
+      <button type="button" class="btn ghost" id="send-another">
+        Send another message
+      </button>
+    </div>
   </article>
 
   {TURNSTILE_KEY && (
@@ -86,6 +107,8 @@ const jsonLd = {
     const status = document.getElementById('form-status')
     const button = form.querySelector('button[type="submit"]')
     const select = document.getElementById('service')
+    const success = document.getElementById('form-success')
+    const again = document.getElementById('send-another')
 
     // Pre-select from ?service=<slug>, set by the CTA on each service page.
     // Assigning only matches a real <option>, so a bogus value falls back to
@@ -97,7 +120,7 @@ const jsonLd = {
     // under 3 seconds — a human cannot type a name, email and message that
     // fast, but a script posts instantly. Set in JS rather than at build time
     // because the page is static and would otherwise carry a stale timestamp.
-    const renderedAt = Date.now()
+    let renderedAt = Date.now()
 
     form.addEventListener('submit', async (event) => {
       event.preventDefault()
@@ -130,8 +153,19 @@ const jsonLd = {
           form.reset()
           if (wanted) select.value = wanted
           if (window.turnstile) window.turnstile.reset()
-          status.className = 'ok'
-          status.textContent = 'Thanks — your message is on its way. We will be in touch.'
+
+          // Clear the inline status: the panel now carries the message, and
+          // leaving both would announce the same thing twice.
+          status.className = ''
+          status.textContent = ''
+
+          form.hidden = true
+          success.hidden = false
+          // Move focus into the panel. Without this, focus stays on a submit
+          // button that is now hidden — the page appears to have changed for
+          // sighted users and not changed at all for anyone using a screen
+          // reader or keyboard.
+          success.focus()
         } else {
           status.className = 'err'
           status.textContent =
@@ -145,9 +179,40 @@ const jsonLd = {
         button.textContent = 'Send'
       }
     })
+
+    again.addEventListener('click', () => {
+      success.hidden = true
+      form.hidden = false
+
+      // Re-stamp, or the timing check is measured from the original page load
+      // and a second message is waved through however fast it is posted.
+      renderedAt = Date.now()
+
+      // Focus the first field rather than the form, so the next message starts
+      // where typing starts.
+      form.querySelector('input, textarea, select')?.focus()
+    })
   </script>
 
   <style>
+    /* Same measure as the form, so swapping one for the other does not make
+       the column jump width. */
+    .success {
+      max-width: 34rem;
+      background: var(--surface);
+      border: 1px solid var(--rule);
+      border-left: 3px solid var(--accent);
+      border-radius: 7px;
+      padding: 1.5rem;
+    }
+    /* Focused from script, so it must not draw a focus ring as though it were
+       an interactive control the user tabbed to. */
+    .success:focus { outline: none; }
+    .success:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .success h2 { margin: 0 0 0.5rem; font-size: 1.125rem; }
+    .success p { margin: 0 0 1.25rem; }
+    .success .btn { margin: 0; }
+
     form { max-width: 34rem; }
     .row { display: grid; gap: 1rem; grid-template-columns: 1fr 1fr; }
     @media (max-width: 30rem) { .row { grid-template-columns: 1fr; } }

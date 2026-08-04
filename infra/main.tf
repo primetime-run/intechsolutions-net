@@ -72,10 +72,26 @@ resource "aws_iam_role_policy_attachment" "logs" {
 
 # Send only, and only as this identity — a compromised function cannot be used
 # to send mail as anything else in the account.
+# Both identities, not just the sending domain.
+#
+# The obvious policy — grant SendEmail on the From identity — is not enough
+# while the account is in the SES sandbox. There, the verified recipient is
+# itself an identity and the call is authorised against it too, so a
+# domain-only grant fails with:
+#
+#   not authorized to perform `ses:SendEmail' on resource
+#   `arn:aws:ses:...:identity/<recipient>'
+#
+# which reads like the sender is wrong and is not. Local testing does not
+# catch this: a developer's own IAM user has broader rights than this role,
+# so the form passes end to end locally and 502s once deployed.
 data "aws_iam_policy_document" "send" {
   statement {
-    actions   = ["ses:SendEmail"]
-    resources = [aws_sesv2_email_identity.domain.arn]
+    actions = ["ses:SendEmail"]
+    resources = [
+      aws_sesv2_email_identity.domain.arn,
+      aws_sesv2_email_identity.recipient.arn,
+    ]
   }
 }
 
